@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+  <head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <title>Device Properties Example</title>
+    <script type="text/javascript" charset="utf-8" src="jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="PushNotification.js"></script>
+    <script type="text/javascript" charset="utf-8" src="cordova.js"></script>
+   <script type="text/javascript" src="kakao.link.js"></script>
+  </head><style type="text/css"> 
+<!--
+body {
+    margin-left: 0px;
+    margin-top: 0px;
+    margin-right: 0px;
+    margin-bottom: 0px;
+    background:url(img/intro_800-1281.png) ;
+    background-size: 100%;
+}
+-->
+</style>
+  <body onload="onLoad()">
+   <div id="home">
+    <div id="app-status-div">
+        <ul id="app-status-ul">
+            <li><input name="history_data" type=text value="">
+            </li>
+        </ul>
+    </div>
+    <div id="myDiv" name="myDiv">
+    </div>
+</div>
+  </body>
+  <script>
+ var historyUrl = new Array(); // history를 저장할 배열, push와 pop을 이용 스택처럼 활용
+ var handle;
+ var pushNotification;
+ pushNotification = window.plugins.pushNotification;
+
+if ( device.platform == 'android' || device.platform == 'Android' )
+{
+    pushNotification.register(
+        successHandler,
+        errorHandler, {
+            "senderID":"717634837564",
+            "ecb":"onNotificationGCM"
+        });
+} else {
+    pushNotification.register(
+        tokenHandler,
+        errorHandler, {
+            "badge":"true",
+            "sound":"true",
+            "alert":"true",
+            "ecb":"onNotificationAPN"
+        });
+}
+
+function successHandler (result) {
+    alert('result = ' + result);
+}
+
+function errorHandler (error) {
+    alert('error = ' + error);
+}
+
+function tokenHandler (result) {
+    // Your iOS push server needs to know the token before it can push to this device
+    // here is where you might want to send it the token for later use.
+    alert('device token = ' + result);
+}
+
+function onNotificationAPN (event) {
+    if ( event.alert )
+    {
+        navigator.notification.alert(event.alert);
+    }
+
+    if ( event.sound )
+    {
+        var snd = new Media(event.sound);
+        snd.play();
+    }
+
+    if ( event.badge )
+    {
+        pushNotification.setApplicationIconBadgeNumber(successHandler, errorHandler, event.badge);
+    }
+}
+
+
+function onNotificationGCM(e) {
+    $("#app-status-ul").append('<li>EVENT -> RECEIVED:' + e.event + '</li>');
+
+    switch( e.event )
+    {
+    case 'registered':
+        if ( e.regid.length > 0 )
+        {
+            $("#app-status-ul").append('<li>REGISTERED -> REGID:' + e.regid + "</li>");
+            // Your GCM push server needs to know the regID before it can push to this device
+            // here is where you might want to send it the regID for later use.
+            console.log("regID = " + e.regid);
+            json_call(e.regid);
+        }
+    break;
+
+    case 'message':
+        // if this flag is set, this notification happened while we were in the foreground.
+        // you might want to play a sound to get the user's attention, throw up a dialog, etc.
+        if ( e.foreground )
+        {
+            $("#app-status-ul").append('<li>--INLINE NOTIFICATION--' + '</li>');
+
+            // if the notification contains a soundname, play it.
+            var my_media = new Media("/android_asset/www/"+e.soundname);
+            my_media.play();
+        }
+        else
+        {  // otherwise we were launched because the user touched a notification in the notification tray.
+            if ( e.coldstart )
+            {
+                $("#app-status-ul").append('<li>--COLDSTART NOTIFICATION--' + '</li>');
+            }
+            else
+            {
+                $("#app-status-ul").append('<li>--BACKGROUND NOTIFICATION--' + '</li>');
+            }
+        }
+
+        $("#app-status-ul").append('<li>MESSAGE -> MSG: ' + e.payload.message + '</li>');
+        $("#app-status-ul").append('<li>MESSAGE -> MSGCNT: ' + e.payload.msgcnt + '</li>');
+    break;
+
+    case 'error':
+       $("#app-status-ul").append('<li>ERROR -> MSG:' + e.msg + '</li>');
+    break;
+
+    default:
+        $("#app-status-ul").append('<li>EVENT -> Unknown, an event was received and we do not know what it is</li>');
+    break;
+  }
+}
+
+function onDeviceReady() {
+navigator.geolocation.getCurrentPosition(onSuccess, onError);
+var  target="_blank";
+
+if (historyUrl.length >= 1) {
+var url = historyUrl.pop(); 
+var target="_blank";
+	} else {
+var url = "http://m.daoneday.com"; 
+var target="_blank";
+}
+
+var ref = window.open(url, target, 'location=no');
+ref.addEventListener('loadstart', function(event) { 
+
+var link_url=event.url;
+history_data.value=link_url;
+historyUrl.push(link_url);
+
+var result=link_url.indexOf('daoneday.com');
+var result2=link_url.indexOf('link.html');
+
+
+ if ( result>-1 ) {
+
+ 	if ( result2==-1) {
+ historyUrl.pop();
+ 	}  
+
+ } else {
+	// 도메인이 다를때 새창
+ var ref2 = window.open(link_url, '_system', 'location=no');
+  
+ 	ref2.addEventListener("loadstart",function(event) {
+	
+	});  
+   ref2.addEventListener("exit", function(event)
+    {
+	onDeviceReady();	
+    });
+  }
+navigator.notification.activityStart("페이지 로딩중입니다..."+historyUrl.length, "loading");
+       });
+	ref.addEventListener('loadstop', function(event) { 
+				navigator.notification.activityStop();
+    });
+
+  	ref.addEventListener('loaderror', function(event) { alert('error: ' + event.message); });
+   //  ref.addEventListener('exit', function(event) { onDeviceReady(); });
+   ref.addEventListener("exit", function(event) 	{
+   navigator.notification.alert("뒤로가기");
+	historyUrl.pop();
+	onDeviceReady();
+    });
+}
+    </script>
+    <script type="text/javascript" charset="utf-8">
+    // Wait for device API libraries to load
+    //
+    document.addEventListener("deviceready", onDeviceReady, false);
+    // device APIs are available
+    //
+    </script>
+
+<script>
+function json_call(reg_id) {
+			var jax=$.post("http://m.daoneday.com/reg_id_check.php?reg_id=11111", function() {
+			window.open('http://m.daoneday.com/reg_id_check.php?reg_id='+e.regid, '_system', 'location=no');
+			$("#app-status-ul").append('<li>save_data</li>');
+			})
+		}
+
+function onLoad() {
+    document.addEventListener("backbutton", backKeyDown, true);
+}
+
+function backKeyDown() {
+     navigator.app.exitApp();
+}
+
+function onSuccess(position) {
+        var div = document.getElementById('myDiv');
+        div.innerHTML = '위치정보 조회 끝';
+}
+
+    // Show an alert if there is a problem getting the geolocation
+    //
+    function onError() {
+        alert('onError!');
+    }
+</script>
+
+</html>
